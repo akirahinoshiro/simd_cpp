@@ -5,36 +5,26 @@
 #include <vector>
 
 namespace stdx = std::experimental;
-constexpr std::size_t simd_size = stdx::simd<float>::size();
+constexpr std::size_t simd_size = stdx::simd<std::uint8_t>::size();
 
-template <typename T> void add_simd(const std::vector<T> &a, const std::vector<T> &b, std::vector<T> &c) {
+template <typename T> void add_simd(const std::vector<T> &a, const std::vector<T> &b, std::vector<T> &c, std::size_t r = 10) {
     for (std::size_t i = 0; i < a.size(); i += simd_size) {
         stdx::simd<T> va(a.data() + i, stdx::vector_aligned);
         stdx::simd<T> vb(b.data() + i, stdx::vector_aligned);
         stdx::simd<T> vc = va + vb;
-        vc = vc + va + vb;
-        vc = vc + va + vb;
-        vc = vc + va + vb;
-        vc = vc + va + vb;
-        vc = vc + va + vb;
-        vc = vc + va + vb;
-        vc = vc + va + vb;
-        vc = vc + va + vb;
+        for (std::size_t j = 0; j < r; ++j) {
+            vc = vc + va + vb;
+        }
         vc.copy_to(c.data() + i, stdx::vector_aligned);
     }
 }
 
-template <typename T> void add_scalar(const std::vector<T> &a, const std::vector<T> &b, std::vector<T> &c) {
+template <typename T> void add_scalar(const std::vector<T> &a, const std::vector<T> &b, std::vector<T> &c, std::size_t r = 10) {
     for (std::size_t i = 0; i < a.size(); ++i) {
         c.at(i) = a.at(i) + b.at(i);
-        c.at(i) += a.at(i) + b.at(i);
-        c.at(i) += a.at(i) + b.at(i);
-        c.at(i) += a.at(i) + b.at(i);
-        c.at(i) += a.at(i) + b.at(i);
-        c.at(i) += a.at(i) + b.at(i);
-        c.at(i) += a.at(i) + b.at(i);
-        c.at(i) += a.at(i) + b.at(i);
-        c.at(i) += a.at(i) + b.at(i);
+        for (std::size_t j = 0; j < r; ++j) {
+            c.at(i) += a.at(i) + b.at(i);
+        }
     }
 }
 
@@ -63,5 +53,5 @@ template <typename T> void Measure(std::size_t N) {
 
 int main() {
     constexpr std::size_t N = simd_size * 100000000;
-    Measure<float>(N);
+    Measure<std::uint8_t>(N);
 }
