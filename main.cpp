@@ -7,18 +7,18 @@
 namespace stdx = std::experimental;
 constexpr std::size_t simd_size = stdx::simd<std::uint8_t>::size();
 
-void add_simd(const std::vector<std::uint8_t> &a, const std::vector<std::uint8_t> &b, std::vector<std::uint8_t> &c)
+template <typename T> void add_simd(const std::vector<T> &a, const std::vector<T> &b, std::vector<T> &c)
 {
     for (std::size_t i = 0; i < a.size(); i += simd_size)
     {
-        stdx::simd<std::uint8_t> va(a.data() + i, stdx::vector_aligned);
-        stdx::simd<std::uint8_t> vb(b.data() + i, stdx::vector_aligned);
-        stdx::simd<std::uint8_t> vc = va + vb;
+        stdx::simd<T> va(a.data() + i, stdx::vector_aligned);
+        stdx::simd<T> vb(b.data() + i, stdx::vector_aligned);
+        stdx::simd<T> vc = va + vb;
         vc.copy_to(c.data() + i, stdx::vector_aligned);
     }
 }
 
-void add_scalar(const std::vector<std::uint8_t> &a, const std::vector<std::uint8_t> &b, std::vector<std::uint8_t> &c)
+template <typename T> void add_scalar(const std::vector<T> &a, const std::vector<T> &b, std::vector<T> &c)
 {
     for (std::size_t i = 0; i < a.size(); ++i)
     {
@@ -26,40 +26,41 @@ void add_scalar(const std::vector<std::uint8_t> &a, const std::vector<std::uint8
     }
 }
 
+template <typename T> void Measure(std::size_t N)
+{
+    std::vector<T> a(N, 1);
+    std::vector<T> b(N, 2);
+    std::vector<T> c(N);
+    auto start_simd = std::chrono::high_resolution_clock::now();
+    add_simd(a, b, c);
+    auto end_simd = std::chrono::high_resolution_clock::now();
+    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(end_simd - start_simd).count() << " microseconds" << std::endl;
+    for (auto val : c)
+    {
+        if (val != 3)
+        {
+            std::cerr << "Error: expected 3, got " << static_cast<int>(val) << std::endl;
+        }
+    }
+    auto start_scalar = std::chrono::high_resolution_clock::now();
+    add_scalar(a, b, c);
+    auto end_scalar = std::chrono::high_resolution_clock::now();
+    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(end_scalar - start_scalar).count() << " microseconds" << std::endl;
+    for (auto val : c)
+    {
+        if (val != 3)
+        {
+            std::cerr << "Error: expected 3, got " << static_cast<int>(val) << std::endl;
+        }
+    }
+    std::cout << "performance improvement: "
+              << static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(end_scalar - start_scalar).count()) /
+                     std::chrono::duration_cast<std::chrono::microseconds>(end_simd - start_simd).count()
+              << "x" << std::endl;
+}
+
 int main()
 {
     constexpr std::size_t N = simd_size * 100000000;
-    std::vector<std::uint8_t> a(N, 1);
-    std::vector<std::uint8_t> b(N, 2);
-    std::vector<std::uint8_t> c(N);
-    auto start = std::chrono::high_resolution_clock::now();
-    add_simd(a, b, c);
-    auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds" << std::endl;
-    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " milliseconds" << std::endl;
-    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << " seconds" << std::endl;
-    for (auto val : c)
-    {
-        if (val != 3)
-        {
-            std::cerr << "Error: expected 3, got " << static_cast<int>(val) << std::endl;
-            return 1;
-        }
-    }
-    start = std::chrono::high_resolution_clock::now();
-    add_scalar(a, b, c);
-    end = std::chrono::high_resolution_clock::now();
-    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds" << std::endl;
-    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " milliseconds" << std::endl;
-    std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << " seconds" << std::endl;
-    for (auto val : c)
-    {
-        if (val != 3)
-        {
-            std::cerr << "Error: expected 3, got " << static_cast<int>(val) << std::endl;
-            return 1;
-        }
-    }
-
-    return 0;
+    Measure<std::uint8_t>(N);
 }
