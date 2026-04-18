@@ -1,0 +1,19 @@
+#ignore all created files
+*
+#set exceptions for needed files
+!*.gitignore
+!*.cpp
+!*.C
+!*.cc
+!*.c
+!*.hpp
+!*.h
+!CMakeLists.txt
+!.clang-format
+!*.ui
+!checks.json
+#even if in subfolder
+!*/
+build/*
+.vscode/*
+*.swp
